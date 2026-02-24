@@ -44,4 +44,22 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+//relations:
+
+public function memberships()
+{
+    return $this->hasMany(Membership::class);
+}
+
+public function expenses()
+{
+    return $this->hasMany(Expense::class,'payer_id');
+}
+
+public function reputationLogs()
+{
+    return $this->hasMany(ReputationLog::class);
+}
+
 }
