@@ -17,4 +17,8 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
+Route::get('/colocation',function(){
+    return view('colocation');
+})->name('colocation');
+
 require __DIR__.'/auth.php';
