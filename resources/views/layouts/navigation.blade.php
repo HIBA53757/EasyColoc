@@ -15,8 +15,8 @@
                     <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                         {{ __('Dashboard') }}
                     </x-nav-link>
-                    <x-nav-link :href="route('colocation')" :active="request()->routeIs('colocation')">
-                        {{ __('Colocation') }}
+                    <x-nav-link :href="route('Colocation')" :active="request()->routeIs('colocation')">
+                        {{ __('My Colocation') }}
                     </x-nav-link>
                 </div>
             </div>

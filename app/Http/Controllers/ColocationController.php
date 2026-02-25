@@ -4,9 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\Colocation;
 use Illuminate\Http\Request;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 
 class ColocationController extends Controller
-{
+{ use AuthorizesRequests;
     /**
      * Display a listing of the resource.
      */
@@ -15,51 +16,10 @@ class ColocationController extends Controller
         //
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        //
-    }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
-    {
-        //
-    }
+    public function create(){
+        $this->authorize('create', Colocation::class);
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(Colocation $colocation)
-    {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(Colocation $colocation)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, Colocation $colocation)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(Colocation $colocation)
-    {
-        //
+    return view('colocations.create');
     }
 }

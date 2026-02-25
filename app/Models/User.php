@@ -45,6 +45,20 @@ class User extends Authenticatable
         ];
     }
 
+public function membership($colocationId)
+{
+    return $this->memberships()
+        ->where('colocation_id', $colocationId)
+        ->whereNull('left_at')
+        ->first();
+}
+public function hasActiveMembership(): bool
+{
+    return $this->memberships()
+        ->whereNull('left_at')
+        ->exists();
+}
+
 //relations:
 
 public function memberships()
@@ -60,6 +74,11 @@ public function expenses()
 public function reputationLogs()
 {
     return $this->hasMany(ReputationLog::class);
+}
+
+public function isAdmin(): bool
+{
+    return $this->role === 'admin_global';
 }
 
 }
