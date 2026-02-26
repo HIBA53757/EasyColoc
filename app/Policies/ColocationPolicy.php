@@ -11,7 +11,7 @@ class ColocationPolicy
 
  public function create(User $user): bool
 {
-    return true;
+    return !$user->hasActiveMembership();
 }
    public function update(User $user, Colocation $colocation): bool
     {

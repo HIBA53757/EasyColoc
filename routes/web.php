@@ -18,6 +18,8 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
     Route::get('/createColocation', [ColocationController::class, 'create'])->name('colocation.create');
     Route::post('/Colocation', [ColocationController::class, 'store'])->name('colocation.store');
+     Route::get('/Colocation', [ColocationController::class,'index'])
+        ->name('Colocation');
 });
 
 Route::get('/Colocation', function () {
