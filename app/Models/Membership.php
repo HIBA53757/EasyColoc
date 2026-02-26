@@ -13,4 +13,14 @@ class Membership extends Model
     'left_at'
 ];
 
+public function colocation()
+{
+    return $this->belongsTo(Colocation::class);
+}
+
+public function user()
+{
+    return $this->belongsTo(User::class);
+}
+
 }

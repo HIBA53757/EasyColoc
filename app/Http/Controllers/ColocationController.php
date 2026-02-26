@@ -12,23 +12,21 @@ class ColocationController extends Controller
     /**
      * Display a listing of the resource.
      */
- public function index()
+ 
+public function index()
 {
     $membership = auth()->user()
         ->memberships()
         ->whereNull('left_at')
+        ->with('colocation')
         ->first();
 
-    if (!$membership) {
-        return view('Colocation');
-    }
-
-    $colocation = $membership->colocation()
-        ->with(['memberships.user','expenses'])
-        ->first();
-
-    return view('Colocation', compact('colocation'));
+   
+    return view('Colocation', [
+        'colocation' => $membership ? $membership->colocation : null
+    ]);
 }
+
 
     public function create()
     {
