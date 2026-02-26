@@ -8,6 +8,11 @@ use Illuminate\Auth\Access\Response;
 
 class ColocationPolicy
 {
+
+ public function create(User $user): bool
+{
+    return true;
+}
    public function update(User $user, Colocation $colocation): bool
     {
         return $user->isOwnerOf($colocation->id);

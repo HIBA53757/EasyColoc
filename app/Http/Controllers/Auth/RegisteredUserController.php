@@ -39,7 +39,7 @@ class RegisteredUserController extends Controller
         'email' => $request->email,
         'password' => Hash::make($request->password),
     ]);
-    if (User::count() === 1) {
+    if (User::count() == 1) {
         $user->role = 'admin_global';
         $user->save();
     }
