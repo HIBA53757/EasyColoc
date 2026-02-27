@@ -25,6 +25,8 @@ Route::middleware('auth')->group(function () {
     
     // Actions
     Route::post('/colocation/{colocation}/invite', [ColocationController::class, 'invite'])->name('colocation.invite');
+    Route::get('/invitation/accept/{token}', [ColocationController::class, 'acceptInvitation'])->name('invitation.accept');
+Route::get('/invitation/refuse/{token}', [ColocationController::class, 'refuseInvitation'])->name('invitation.refuse');
 });
 
 require __DIR__ . '/auth.php';
