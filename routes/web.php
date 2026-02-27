@@ -18,11 +18,13 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
-  
-    Route::get('/Colocation', [ColocationController::class, 'index'])->name('Colocation');
+    Route::get('/Colocation/{id?}', [ColocationController::class, 'index'])->name('Colocation');
 
     Route::get('/createColocation', [ColocationController::class, 'create'])->name('colocation.create');
     Route::post('/Colocation', [ColocationController::class, 'store'])->name('colocation.store');
+    
+    // Actions
+    Route::post('/colocation/{colocation}/invite', [ColocationController::class, 'invite'])->name('colocation.invite');
 });
 
 require __DIR__ . '/auth.php';

@@ -60,11 +60,18 @@ class User extends Authenticatable
 
     // Relations
 
-    public function memberships()
-    {
-        return $this->hasMany(Membership::class);
-    }
+   public function memberships()
+{
+    return $this->hasMany(Membership::class);
+}
 
+public function colocations()
+{
+    return $this->belongsToMany(Colocation::class, 'memberships')
+                ->withPivot('role', 'left_at')
+                ->withTimestamps()
+                ->using(Membership::class); 
+}
     public function expenses()
     {
         return $this->hasMany(Expense::class, 'payer_id');
