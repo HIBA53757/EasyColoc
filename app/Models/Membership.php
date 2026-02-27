@@ -6,6 +6,9 @@ use Illuminate\Database\Eloquent\Relations\Pivot;
 class Membership extends Pivot 
 {
     protected $table = 'memberships';
+    protected $casts = [
+    'left_at' => 'datetime',
+];
     
     public $incrementing = true; 
 

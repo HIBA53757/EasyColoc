@@ -16,48 +16,40 @@ class ColocationController extends Controller
 {
     use AuthorizesRequests;
 
-    public function index($id = null)
-    {
-        $user = auth()->user();
+public function index($id = null)
+{
+    $user = auth()->user();
 
+    $pendingInvitations = Invitation::where('email', $user->email)
+                                    ->where('status', 'pending')
+                                    ->get();
 
-        $pendingInvitations = Invitation::where('email', $user->email)
-                                        ->where('status', 'pending')
-                                        ->get();
+    $allMemberships = $user->memberships()->with('colocation.memberships.user')->get();
+    
+    $active = $allMemberships->whereNull('left_at')->first();
+    $history = $allMemberships->whereNotNull('left_at');
+    $canCreate = !$active;
 
-        $allMemberships = $user->memberships()->with('colocation.memberships.user')->get();
-        $active = $allMemberships->whereNull('left_at')->first();
-        $history = $allMemberships->whereNotNull('left_at');
+    if ($id) {
+        $membership = $allMemberships->where('colocation_id', $id)->first();
+        if (!$membership) abort(403);
 
-        
-        if (!$id) {
-            if ($active) {
-                return redirect()->route('Colocation', ['id' => $active->colocation_id]);
-            }
-            
-
-            return view('Colocation', [
-                'colocation' => null,
-                'history' => $history,
-                'pendingInvitations' => $pendingInvitations,
-                'activeColocId' => null
-            ]);
-        }
-
-      
-        $currentMembership = $allMemberships->where('colocation_id', $id)->first();
-
-        if (!$currentMembership) {
-            abort(403, "Vous ne faites pas partie de cette colocation.");
-        }
-
-        return view('Colocation', [
-            'colocation' => $currentMembership->colocation,
-            'history' => $history,
+        return view('ColocationDetail', [ 
+            'colocation' => $membership->colocation,
+            'activeColocId' => $active ? $active->colocation_id : null,
+            'isHistory' => $membership->left_at !== null,
             'pendingInvitations' => $pendingInvitations,
-            'activeColocId' => $active ? $active->colocation_id : null
+            'canCreate' => $canCreate
         ]);
     }
+
+    return view('Colocation', [ 
+        'active' => $active,
+        'history' => $history,
+        'pendingInvitations' => $pendingInvitations,
+        'canCreate' => $canCreate
+    ]);
+} 
 
     public function create()
     {
@@ -139,10 +131,17 @@ public function destroy(Colocation $colocation)
     
     $this->authorize('delete', $colocation);
 
-    $colocation->memberships()->delete();
-    $colocation->delete();
+    $colocation->update([
+        'status' => 'cancelled',
+        'cancelled_at' => now()
+    ]);
 
-    return redirect()->route('Colocation')->with('success', "La colocation a été définitivement supprimée.");
+    $colocation->memberships()->whereNull('left_at')->update([
+        'left_at' => now()
+    ]);
+
+   return redirect()->route('Colocation')
+        ->with('success', "La colocation a été annulée et archivée.");
 }
 
 

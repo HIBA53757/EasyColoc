@@ -20,10 +20,10 @@ class ColocationPolicy
         return $user->isOwnerOf($colocation->id);
     }
 
-    public function delete(User $user, Colocation $colocation): bool
-    {
-        return $user->isOwnerOf($colocation->id);
-    }
+  public function delete(User $user, Colocation $colocation): bool
+{
+    return $user->isOwnerOf($colocation->id) && $colocation->status === 'active';
+}
 
   public function invite(User $user, Colocation $colocation): bool
 {
