@@ -86,4 +86,12 @@ public function colocations()
     {
         return $this->role === 'admin_global';
     }
+
+    public function isMemberOf($colocationId): bool
+{
+    return $this->memberships()
+                ->where('colocation_id', $colocationId)
+                ->whereNull('left_at')
+                ->exists();
+}
 }

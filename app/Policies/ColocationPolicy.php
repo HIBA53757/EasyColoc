@@ -35,7 +35,10 @@ class ColocationPolicy
 }
 
     public function leave(User $user, Colocation $colocation): bool
-    {
-        return true;
+    {return $user->id !== $colocation->owner_id && 
+           $user->memberships()
+                ->where('colocation_id', $colocation->id)
+                ->whereNull('left_at')
+                ->exists(); return $user->id !== $colocation->owner_id && $user->isMemberOf($colocation->id);
     } 
 }

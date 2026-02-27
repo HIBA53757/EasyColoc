@@ -1,7 +1,7 @@
 <x-app-layout>
 <div class="max-w-6xl mx-auto p-6">
 
-    {{-- SECTION INVITATIONS REÇUES --}}
+  
     @if(isset($pendingInvitations) && $pendingInvitations->isNotEmpty())
         @foreach($pendingInvitations as $invite)
             <div class="mb-8 bg-indigo-600 p-6 rounded-3xl text-white shadow-xl flex flex-col md:flex-row justify-between items-center gap-4">
@@ -33,10 +33,40 @@
             </div>
             
             <div class="flex gap-2">
-                @if(request()->route('id') == $activeColocId || (!request()->route('id') && $activeColocId))
-                    <button class="px-6 py-2 bg-indigo-600 text-white rounded-xl font-bold text-sm shadow-lg hover:bg-indigo-700">+ Ajouter une dépense</button>
-                @endif
-            </div>
+    {{-- On vérifie qu'on regarde bien la colocation active --}}
+    @if(request()->route('id') == $activeColocId || (!request()->route('id') && $activeColocId))
+        
+        {{-- BOUTON QUITTER : Apparaît seulement pour les membres (via leave policy) --}}
+        @can('leave', $colocation)
+            <form action="{{ route('colocation.leave', $colocation) }}" method="POST" onsubmit="return confirm('Êtes-vous sûr de vouloir quitter cette colocation ?')">
+                @csrf
+                <button type="submit" class="px-4 py-2 bg-white border border-rose-200 rounded-xl font-bold text-sm text-rose-600 hover:bg-rose-50 transition-all">
+                    Quitter la colocation
+                </button>
+            </form>
+        @endcan
+
+        {{-- BOUTON ANNULER : Apparaît seulement pour l'Owner (via delete policy) --}}
+        @can('delete', $colocation)
+            <form action="{{ route('colocation.destroy', $colocation) }}" method="POST" onsubmit="return confirm('Attention : Cela supprimera toutes les données de la colocation !')">
+                @csrf
+                @method('DELETE')
+                <button type="submit" class="px-4 py-2 bg-white border border-gray-200 rounded-xl font-bold text-sm text-gray-500 hover:bg-rose-600 hover:text-white transition-all">
+                    Annuler la colocation
+                </button>
+            </form>
+        @endcan
+
+        {{-- BOUTON DÉPENSE : Toujours visible pour les membres actifs --}}
+        <button class="px-6 py-2 bg-indigo-600 text-white rounded-xl font-bold text-sm shadow-lg hover:bg-indigo-700 transition-all">
+            + Ajouter une dépense
+        </button>
+    @endif
+</div>
+
+
+
+            
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">

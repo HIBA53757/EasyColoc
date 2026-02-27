@@ -133,4 +133,37 @@ class ColocationController extends Controller
         $invitation->update(['status' => 'refused']);
         return redirect()->route('Colocation')->with('success', "Invitation refusée.");
     }
+
+public function destroy(Colocation $colocation)
+{
+    
+    $this->authorize('delete', $colocation);
+
+    $colocation->memberships()->delete();
+    $colocation->delete();
+
+    return redirect()->route('Colocation')->with('success', "La colocation a été définitivement supprimée.");
+}
+
+
+public function leave(Colocation $colocation)
+{
+   
+    $this->authorize('leave', $colocation);
+
+    $user = auth()->user();
+
+    $membership = $user->memberships()
+        ->where('colocation_id', $colocation->id)
+        ->whereNull('left_at')
+        ->first();
+
+    if ($membership) {
+        $membership->update(['left_at' => now()]);
+        return redirect()->route('Colocation')->with('success', "Vous avez quitté la colocation.");
+    }
+
+    return back()->with('error', "Impossible de quitter cette colocation.");
+}
+    
 }

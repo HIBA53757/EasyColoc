@@ -22,11 +22,14 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/createColocation', [ColocationController::class, 'create'])->name('colocation.create');
     Route::post('/Colocation', [ColocationController::class, 'store'])->name('colocation.store');
-    
+
     // Actions
     Route::post('/colocation/{colocation}/invite', [ColocationController::class, 'invite'])->name('colocation.invite');
     Route::get('/invitation/accept/{token}', [ColocationController::class, 'acceptInvitation'])->name('invitation.accept');
-Route::get('/invitation/refuse/{token}', [ColocationController::class, 'refuseInvitation'])->name('invitation.refuse');
+    Route::get('/invitation/refuse/{token}', [ColocationController::class, 'refuseInvitation'])->name('invitation.refuse');
+    
+    Route::delete('/colocation/{colocation}', [ColocationController::class, 'destroy'])->name('colocation.destroy');
+    Route::post('/colocation/{colocation}/leave', [ColocationController::class, 'leave'])->name('colocation.leave');
 });
 
 require __DIR__ . '/auth.php';
