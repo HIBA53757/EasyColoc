@@ -27,4 +27,10 @@ public function expenses()
 {
     return $this->hasMany(Expense::class);
 }
+
+public function activeMembers() {
+    return $this->belongsToMany(User::class, 'memberships')
+                ->whereNull('memberships.left_at');
+}
+
 }
