@@ -8,12 +8,12 @@
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
                 <div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
                     <p class="text-gray-500 text-sm font-medium mb-1">Dépenses Globales ({{ now()->translatedFormat('F') }})</p>
-                    <h3 class="text-3xl font-black text-gray-900">{{ number_format($totalGlobalMonth, 2) }} €</h3>
+                    <h3 class="text-3xl font-black text-gray-900">{{ number_format($totalGlobalMonth, 2) }} dh</h3>
                 </div>
 
                 <div class="{{ $myBalance >= 0 ? 'bg-indigo-600' : 'bg-rose-600' }} p-6 rounded-3xl shadow-lg text-white transition-colors">
                     <p class="text-indigo-100 text-sm font-medium mb-1">Mon Solde</p>
-                    <h3 class="text-3xl font-black">{{ $myBalance >= 0 ? '+' : '' }}{{ number_format($myBalance, 2) }} €</h3>
+                    <h3 class="text-3xl font-black">{{ $myBalance >= 0 ? '+' : '' }}{{ number_format($myBalance, 2) }} dh</h3>
                     <p class="text-[10px] mt-2 opacity-80 uppercase font-bold">
                         {{ $myBalance >= 0 ? 'On vous doit cet argent' : 'Vous devez cet argent' }}
                     </p>
@@ -52,7 +52,7 @@
                                         </div>
                                         <span class="text-sm font-medium">{{ $expense->payer->name == auth()->user()->name ? 'Moi' : $expense->payer->name }}</span>
                                     </td>
-                                    <td class="px-6 py-4 font-black text-gray-900">{{ number_format($expense->amount, 2) }} €</td>
+                                    <td class="px-6 py-4 font-black text-gray-900">{{ number_format($expense->amount, 2) }} dh</td>
                                     <td class="px-6 py-4 text-right text-gray-500 text-sm">
                                         {{ \Carbon\Carbon::parse($expense->date)->translatedFormat('d M Y') }}
                                     </td>

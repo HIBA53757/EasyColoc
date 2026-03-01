@@ -181,7 +181,7 @@ class ColocationController extends Controller
             ->with('success', "La colocation annuler");
     }
 
-   public function leave(Colocation $colocation)
+public function leave(Colocation $colocation)
 {
     $this->authorize('leave', $colocation);
     $user = auth()->user();
@@ -194,15 +194,15 @@ class ColocationController extends Controller
     if ($membership) {
       
         $colocation->expenses()
-            ->where('user_id', $user->id)
-            ->update(['user_id' => $colocation->owner_id]);
+            ->where('payer_id', $user->id)
+            ->update(['payer_id' => $colocation->owner_id]);
 
         $membership->update(['left_at' => now()]);
 
         return redirect()->route('Colocation')
-            ->with('success', "quiter succed");
+            ->with('success', "Vous avez quitté la colocation. Vos dépenses ont été transférées au propriétaire.");
     }
 
-    return back()->with('error', "Impossible de quitter cette");
+    return back()->with('error', "Impossible de quitter cette colocation.");
 }
 }
