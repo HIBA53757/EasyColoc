@@ -11,32 +11,21 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
-use App\Http\Controllers\ExpenseController;
 
 class ColocationController extends Controller
 {
     use AuthorizesRequests;
 
-
-
-
-
-public function index()
+    public function index()
     {
         $user = auth()->user();
-        
-    
-        $reputation = 0;
-        $history = $user->memberships()->whereNotNull('left_at')->with('colocation')->get();
-        foreach ($history as $membership) {
-            if ($membership->colocation) {
-                $balances = ExpenseController::getBalances($membership->colocation);
-                $finalBalance = $balances[$user->id]['balance'] ?? 0;
-                $reputation += ($finalBalance < 0) ? -1 : 1;
-            }
-        }
 
-        $activeMembership = $user->memberships()->whereNull('left_at')->with('colocation.expenses')->first();
+        $reputation = 0; 
+
+        $activeMembership = $user->memberships()
+            ->whereNull('left_at')
+            ->with('colocation.expenses')
+            ->first();
         
         $totalGlobalMonth = 0;
         $myBalance = 0;
@@ -63,39 +52,42 @@ public function index()
         return view('dashboard', compact('totalGlobalMonth', 'myBalance', 'recentExpenses', 'reputation'));
     }
 
-  public function list()
-{
-    $user = auth()->user();
+    public function list()
+    {
+        $user = auth()->user();
 
-    $active = $user->memberships()
-        ->whereNull('left_at')
-        ->with('colocation.memberships')
-        ->first();
+        $active = $user->memberships()
+            ->whereNull('left_at')
+            ->with('colocation.memberships')
+            ->first();
 
-    $history = $user->memberships()
-        ->whereNotNull('left_at')
-        ->with('colocation')
-        ->get();
+        $history = $user->memberships()
+            ->whereNotNull('left_at')
+            ->with('colocation')
+            ->get();
 
-    $canCreate = !$active;
+        $canCreate = !$active;
 
-    $pendingInvitations = Invitation::where('email', $user->email)
-        ->where('status', 'pending')
-        ->with('colocation')
-        ->get();
+        $pendingInvitations = Invitation::where('email', $user->email)
+            ->where('status', 'pending')
+            ->with('colocation')
+            ->get();
 
-    return view('colocation', compact('active', 'history', 'canCreate', 'pendingInvitations'));
-}
+        return view('colocation', compact('active', 'history', 'canCreate', 'pendingInvitations'));
+    }
 
-public function show($id)
-{
-    $colocation = Colocation::with(['expenses.payer', 'memberships.user'])->findOrFail($id);
-    
-    $balances = ExpenseController::getBalances($colocation);
-    $isHistory = false;
+    public function show($id)
+    {
+        $colocation = Colocation::with(['expenses.payer', 'memberships.user'])->findOrFail($id);
 
-    return view('colocationDetail', compact('colocation', 'balances', 'isHistory'));
-}
+        $userMembership = auth()->user()->memberships()->where('colocation_id', $id)->first();
+
+        $isHistory = ($colocation->status === 'cancelled') || ($userMembership && $userMembership->left_at !== null);
+        
+        $balances = ExpenseController::getBalances($colocation);
+
+        return view('colocationDetail', compact('colocation', 'balances', 'isHistory'));
+    }
 
     public function create()
     {
@@ -109,6 +101,7 @@ public function show($id)
         $colocation = Colocation::create([
             'name' => $request->name,
             'owner_id' => auth()->id(),
+            'status' => 'active' 
         ]);
 
         Membership::create([
@@ -121,25 +114,24 @@ public function show($id)
     }
 
     public function invite(Request $request, Colocation $colocation)
-{
-    $this->authorize('invite', $colocation);
+    {
+        $this->authorize('invite', $colocation);
+        $request->validate(['email' => 'required|email']);
 
-    $request->validate(['email' => 'required|email']);
+        $invitedUser = User::where('email', $request->email)->first();
+        if ($invitedUser && $invitedUser->memberships()->whereNull('left_at')->exists()) {
+            return back()->with('error', "Cet utilisateur a déjà une colocation active.");
+        }
 
-    $invitedUser = User::where('email', $request->email)->first();
-    if ($invitedUser && $invitedUser->hasActiveMembership()) {
-        return back()->with('error', "Cet utilisateur a déjà une colocation active.");
+        $invitation = Invitation::updateOrCreate(
+            ['email' => $request->email, 'colocation_id' => $colocation->id],
+            ['token' => Str::random(64), 'status' => 'pending']
+        );
+
+        Mail::to($request->email)->send(new ColocationInvitationMail($invitation));
+
+        return back()->with('success', "Invitation envoyer");
     }
-
-    $invitation = Invitation::updateOrCreate(
-        ['email' => $request->email, 'colocation_id' => $colocation->id],
-        ['token' => Str::random(64), 'status' => 'pending']
-    );
-
-    Mail::to($request->email)->send(new ColocationInvitationMail($invitation));
-
-    return back()->with('success', "Invitation envoyée avec succès !");
-}
 
     public function acceptInvitation($token)
     {
@@ -150,7 +142,7 @@ public function show($id)
             return redirect()->route('Colocation')->with('error', "Ce lien ne vous est pas destiné.");
         }
 
-        if ($user->hasActiveMembership()) {
+        if ($user->memberships()->whereNull('left_at')->exists()) {
             return redirect()->route('Colocation')->with('error', "Vous avez déjà une colocation active.");
         }
 
@@ -161,7 +153,7 @@ public function show($id)
 
         $invitation->update(['status' => 'accepted']);
 
-        return redirect()->route('Colocation', ['id' => $invitation->colocation_id])
+        return redirect()->route('colocation.show', $invitation->colocation_id)
                          ->with('success', "Bienvenue dans la colocation !");
     }
 
@@ -172,30 +164,26 @@ public function show($id)
         return redirect()->route('Colocation')->with('success', "Invitation refusée.");
     }
 
-public function destroy(Colocation $colocation)
+    public function destroy(Colocation $colocation)
+    {
+        $this->authorize('delete', $colocation);
+
+        $colocation->update([
+            'status' => 'cancelled',
+            'cancelled_at' => now()
+        ]);
+
+        $colocation->memberships()->whereNull('left_at')->update([
+            'left_at' => now()
+        ]);
+
+        return redirect()->route('Colocation')
+            ->with('success', "La colocation annuler");
+    }
+
+   public function leave(Colocation $colocation)
 {
-    
-    $this->authorize('delete', $colocation);
-
-    $colocation->update([
-        'status' => 'cancelled',
-        'cancelled_at' => now()
-    ]);
-
-    $colocation->memberships()->whereNull('left_at')->update([
-        'left_at' => now()
-    ]);
-
-   return redirect()->route('Colocation')
-        ->with('success', "La colocation a été annulée et archivée.");
-}
-
-
-public function leave(Colocation $colocation)
-{
-   
     $this->authorize('leave', $colocation);
-
     $user = auth()->user();
 
     $membership = $user->memberships()
@@ -204,11 +192,17 @@ public function leave(Colocation $colocation)
         ->first();
 
     if ($membership) {
+      
+        $colocation->expenses()
+            ->where('user_id', $user->id)
+            ->update(['user_id' => $colocation->owner_id]);
+
         $membership->update(['left_at' => now()]);
-        return redirect()->route('Colocation')->with('success', "Vous avez quitté la colocation.");
+
+        return redirect()->route('Colocation')
+            ->with('success', "quiter succed");
     }
 
-    return back()->with('error', "Impossible de quitter cette colocation.");
+    return back()->with('error', "Impossible de quitter cette");
 }
-    
 }
