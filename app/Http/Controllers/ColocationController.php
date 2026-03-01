@@ -11,45 +11,52 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use App\Http\Controllers\ExpenseController;
 
 class ColocationController extends Controller
 {
     use AuthorizesRequests;
 
 public function index($id = null)
-{
-    $user = auth()->user();
+    {
+        $user = auth()->user();
 
-    $pendingInvitations = Invitation::where('email', $user->email)
-                                    ->where('status', 'pending')
-                                    ->get();
+        $pendingInvitations = Invitation::where('email', $user->email)
+                                        ->where('status', 'pending')
+                                        ->get();
 
-    $allMemberships = $user->memberships()->with('colocation.memberships.user')->get();
-    
-    $active = $allMemberships->whereNull('left_at')->first();
-    $history = $allMemberships->whereNotNull('left_at');
-    $canCreate = !$active;
+        $allMemberships = $user->memberships()->with('colocation.memberships.user')->get();
+        
+        $active = $allMemberships->whereNull('left_at')->first();
+        $history = $allMemberships->whereNotNull('left_at');
+        $canCreate = !$active;
 
-    if ($id) {
-        $membership = $allMemberships->where('colocation_id', $id)->first();
-        if (!$membership) abort(403);
+        if ($id) {
+            $membership = $allMemberships->where('colocation_id', $id)->first();
+            if (!$membership) abort(403);
 
-        return view('ColocationDetail', [ 
-            'colocation' => $membership->colocation,
-            'activeColocId' => $active ? $active->colocation_id : null,
-            'isHistory' => $membership->left_at !== null,
+            $colocation = $membership->colocation;
+
+
+            $balances = ExpenseController::getBalances($colocation);
+
+            return view('ColocationDetail', [ 
+                'colocation' => $colocation,
+                'balances' => $balances,
+                'activeColocId' => $active ? $active->colocation_id : null,
+                'isHistory' => $membership->left_at !== null,
+                'pendingInvitations' => $pendingInvitations,
+                'canCreate' => $canCreate
+            ]);
+        }
+
+        return view('Colocation', [ 
+            'active' => $active,
+            'history' => $history,
             'pendingInvitations' => $pendingInvitations,
             'canCreate' => $canCreate
         ]);
     }
-
-    return view('Colocation', [ 
-        'active' => $active,
-        'history' => $history,
-        'pendingInvitations' => $pendingInvitations,
-        'canCreate' => $canCreate
-    ]);
-} 
 
     public function create()
     {

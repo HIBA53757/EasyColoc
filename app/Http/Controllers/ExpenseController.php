@@ -3,63 +3,58 @@
 namespace App\Http\Controllers;
 
 use App\Models\Expense;
+use App\Models\Colocation;
 use Illuminate\Http\Request;
 
 class ExpenseController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
+   
+    public static function getBalances(Colocation $colocation)
     {
-        //
+        $colocation->load(['memberships.user', 'expenses']);
+        
+        $totalExpenses = $colocation->expenses->sum('amount');
+        $activeMemberships = $colocation->memberships->whereNull('left_at');
+        $count = max($activeMemberships->count(), 1);
+        
+        $sharePerPerson = $totalExpenses / $count;
+
+        return $colocation->memberships->map(function ($membership) use ($sharePerPerson, $colocation) {
+            $user = $membership->user;
+        
+            $paid = $colocation->expenses->where('payer_id', $user->id)->sum('amount');
+            
+            $isHistory = $membership->left_at !== null;
+            $due = $isHistory ? 0 : $sharePerPerson;
+
+            return [
+                'user'    => $user,
+                'paid'    => $paid,
+                'due'     => $due,
+                'balance' => $paid - $due,
+                'is_left' => $isHistory
+            ];
+        });
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
+    public function store(Request $request, Colocation $colocation)
     {
-        //
-    }
+        $request->validate([
+            'title' => 'required|string|max:255',
+            'amount' => 'required|numeric|min:0.01',
+            'category_id' => 'required|exists:categories,id',
+            'date' => 'required|date',
+        ]);
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
-    {
-        //
-    }
+        Expense::create([
+            'title' => $request->title,
+            'amount' => $request->amount,
+            'date' => $request->date,
+            'payer_id' => auth()->id(), 
+            'colocation_id' => $colocation->id,
+            'category_id' => $request->category_id,
+        ]);
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(Expense $expense)
-    {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(Expense $expense)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, Expense $expense)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(Expense $expense)
-    {
-        //
+        return back()->with('success', 'Dépense ajoutée et soldes mis à jour !');
     }
 }
