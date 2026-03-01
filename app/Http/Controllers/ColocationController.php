@@ -17,46 +17,85 @@ class ColocationController extends Controller
 {
     use AuthorizesRequests;
 
-public function index($id = null)
+
+
+
+
+public function index()
     {
         $user = auth()->user();
-
-        $pendingInvitations = Invitation::where('email', $user->email)
-                                        ->where('status', 'pending')
-                                        ->get();
-
-        $allMemberships = $user->memberships()->with('colocation.memberships.user')->get();
         
-        $active = $allMemberships->whereNull('left_at')->first();
-        $history = $allMemberships->whereNotNull('left_at');
-        $canCreate = !$active;
-
-        if ($id) {
-            $membership = $allMemberships->where('colocation_id', $id)->first();
-            if (!$membership) abort(403);
-
-            $colocation = $membership->colocation;
-
-
-            $balances = ExpenseController::getBalances($colocation);
-
-            return view('ColocationDetail', [ 
-                'colocation' => $colocation,
-                'balances' => $balances,
-                'activeColocId' => $active ? $active->colocation_id : null,
-                'isHistory' => $membership->left_at !== null,
-                'pendingInvitations' => $pendingInvitations,
-                'canCreate' => $canCreate
-            ]);
+    
+        $reputation = 0;
+        $history = $user->memberships()->whereNotNull('left_at')->with('colocation')->get();
+        foreach ($history as $membership) {
+            if ($membership->colocation) {
+                $balances = ExpenseController::getBalances($membership->colocation);
+                $finalBalance = $balances[$user->id]['balance'] ?? 0;
+                $reputation += ($finalBalance < 0) ? -1 : 1;
+            }
         }
 
-        return view('Colocation', [ 
-            'active' => $active,
-            'history' => $history,
-            'pendingInvitations' => $pendingInvitations,
-            'canCreate' => $canCreate
-        ]);
+        $activeMembership = $user->memberships()->whereNull('left_at')->with('colocation.expenses')->first();
+        
+        $totalGlobalMonth = 0;
+        $myBalance = 0;
+        $recentExpenses = collect();
+
+        if ($activeMembership && $activeMembership->colocation) {
+            $colocation = $activeMembership->colocation;
+
+            $totalGlobalMonth = $colocation->expenses()
+                ->whereMonth('date', now()->month)
+                ->whereYear('date', now()->year)
+                ->sum('amount');
+
+            $balances = ExpenseController::getBalances($colocation);
+            $myBalance = $balances[$user->id]['balance'] ?? 0;
+
+            $recentExpenses = $colocation->expenses()
+                ->with(['payer'])
+                ->orderBy('date', 'desc')
+                ->take(10)
+                ->get();
+        }
+
+        return view('dashboard', compact('totalGlobalMonth', 'myBalance', 'recentExpenses', 'reputation'));
     }
+
+  public function list()
+{
+    $user = auth()->user();
+
+    $active = $user->memberships()
+        ->whereNull('left_at')
+        ->with('colocation.memberships')
+        ->first();
+
+    $history = $user->memberships()
+        ->whereNotNull('left_at')
+        ->with('colocation')
+        ->get();
+
+    $canCreate = !$active;
+
+    $pendingInvitations = Invitation::where('email', $user->email)
+        ->where('status', 'pending')
+        ->with('colocation')
+        ->get();
+
+    return view('colocation', compact('active', 'history', 'canCreate', 'pendingInvitations'));
+}
+
+public function show($id)
+{
+    $colocation = Colocation::with(['expenses.payer', 'memberships.user'])->findOrFail($id);
+    
+    $balances = ExpenseController::getBalances($colocation);
+    $isHistory = false;
+
+    return view('colocationDetail', compact('colocation', 'balances', 'isHistory'));
+}
 
     public function create()
     {

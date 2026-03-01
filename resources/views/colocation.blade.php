@@ -10,7 +10,6 @@
         @endif
     </div>
 
-
     @if($pendingInvitations->isNotEmpty())
         <div class="grid gap-4 mb-10">
             @foreach($pendingInvitations as $invite)
@@ -35,7 +34,7 @@
     <div class="mb-10">
         <h3 class="text-xs font-black uppercase tracking-widest text-gray-400 mb-4">Colocation Actuelle</h3>
         @if($active)
-            <a href="{{ route('Colocation', $active->colocation_id) }}" class="group block bg-white border-2 border-indigo-600 p-8 rounded-3xl shadow-xl hover:scale-[1.01] transition-all">
+            <a href="{{ route('colocation.show', $active->colocation_id) }}" class="group block bg-white border-2 border-indigo-600 p-8 rounded-3xl shadow-xl hover:scale-[1.01] transition-all">
                 <div class="flex justify-between items-center">
                     <div>
                         <span class="text-indigo-600 font-black text-xs uppercase">En cours</span>
@@ -53,12 +52,15 @@
             </div>
         @endif
     </div>
+
+    {{-- histoy --}}
     @if($history->isNotEmpty())
         <div>
             <h3 class="text-xs font-black uppercase tracking-widest text-gray-400 mb-4">Anciennes Colocations</h3>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 @foreach($history as $membership)
-                    <a href="{{ route('Colocation', $membership->colocation_id) }}" class="bg-white border border-gray-100 p-6 rounded-3xl hover:bg-gray-50 transition-all flex justify-between items-center">
+
+                    <a href="{{ route('colocation.show', $membership->colocation_id) }}" class="bg-white border border-gray-100 p-6 rounded-3xl hover:bg-gray-50 transition-all flex justify-between items-center">
                         <div>
                             <h4 class="font-bold text-slate-800">{{ $membership->colocation->name }}</h4>
                             <p class="text-xs text-slate-400 italic">Quittée le {{ $membership->left_at->format('d/m/Y') }}</p>
